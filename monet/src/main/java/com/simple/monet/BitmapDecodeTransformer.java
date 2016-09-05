@@ -3,26 +3,23 @@ package com.simple.monet;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.Executors;
 
 import rx.Observable;
 import rx.Scheduler;
-import rx.android.schedulers.AndroidSchedulers;
 import rx.exceptions.Exceptions;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
 class BitmapDecodeTransformer implements Observable.Transformer<Request.Builder, Bitmap> {
 
-    BitmapDecodeTransformer() {
-        // Pass
-    }
-
     @Override
     public Observable<Bitmap> call(final Observable<Request.Builder> requestObservable) {
         return requestObservable
+                .observeOn(DecodeSchedulerHolder.getInstance())
                 .map(new Func1<Request.Builder, Bitmap>() {
                     @Override
                     public Bitmap call(Request.Builder requestBuilder) {
@@ -32,12 +29,10 @@ class BitmapDecodeTransformer implements Observable.Transformer<Request.Builder,
                             throw Exceptions.propagate(e);
                         }
                     }
-                })
-                .subscribeOn(DecodeSchedulerHolder.getInstance())
-                .observeOn(AndroidSchedulers.mainThread());
+                });
     }
 
-    private Bitmap decode(Request request) throws IOException {
+    Bitmap decode(Request request) throws IOException {
         Log.d("Monet", "Decoding request: " + request);
 
         InputStream stream = request.stream();

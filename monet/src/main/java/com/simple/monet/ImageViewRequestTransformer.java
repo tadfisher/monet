@@ -21,12 +21,14 @@ class ImageViewRequestTransformer implements Transformer<Request.Builder, Reques
 
     @Override
     public Observable<Request.Builder> call(Observable<Request.Builder> builderObservable) {
-        return builderObservable.flatMap(new Func1<Request.Builder, Observable<Request.Builder>>() {
-            @Override
-            public Observable<Request.Builder> call(Request.Builder builder) {
-                return Observable.create(new ImageViewRequestOnSubscribe(builder, view, fitX, fitY))
-                        .subscribeOn(AndroidSchedulers.mainThread());
-            }
-        });
+        return builderObservable
+                .observeOn(AndroidSchedulers.mainThread())
+                .flatMap(new Func1<Request.Builder, Observable<Request.Builder>>() {
+                    @Override
+                    public Observable<Request.Builder> call(Request.Builder builder) {
+                        return Observable.create(
+                                new ImageViewRequestOnSubscribe(builder, view, fitX, fitY));
+                    }
+                });
     }
 }

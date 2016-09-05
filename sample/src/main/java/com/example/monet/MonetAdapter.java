@@ -10,6 +10,7 @@ import com.simple.monet.Monet;
 
 import okhttp3.ResponseBody;
 import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
 import rx.subscriptions.CompositeSubscription;
 
 class MonetAdapter extends RecyclerView.Adapter<ViewHolder> {
@@ -19,16 +20,11 @@ class MonetAdapter extends RecyclerView.Adapter<ViewHolder> {
 
     MonetAdapter(ImgurService service) {
         this.service = service;
-    }
-
-    void onResume() {
         subscriptions = new CompositeSubscription();
     }
 
     void onPause() {
-        if (subscriptions != null) {
-            subscriptions.unsubscribe();
-        }
+        subscriptions.clear();
     }
 
     @Override
@@ -61,7 +57,6 @@ class MonetAdapter extends RecyclerView.Adapter<ViewHolder> {
         void bind(String url) {
             if (subscription != null) {
                 subscriptions.remove(subscription);
-                subscription.unsubscribe();
             }
             view.setImageDrawable(null);
             subscription = service.fetch(url)
@@ -69,6 +64,7 @@ class MonetAdapter extends RecyclerView.Adapter<ViewHolder> {
                     .compose(Monet.fromInputStream())
                     .compose(Monet.fit(view))
                     .compose(Monet.decode())
+                    .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(view::setImageBitmap);
             subscriptions.add(subscription);
         }

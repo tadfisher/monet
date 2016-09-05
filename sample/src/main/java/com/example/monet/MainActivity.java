@@ -37,12 +37,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        adapter.onResume();
-    }
-
-    @Override
     protected void onPause() {
         super.onPause();
         adapter.onPause();

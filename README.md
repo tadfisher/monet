@@ -31,6 +31,7 @@ service.fetch(imageUrl)
   .compose(Monet.fromInputStream())
   .compose(Monet.fit(imageView))
   .compose(Monet.decode())
+  .observeOn(AndroidSchedulers.mainThread())
   .subscribe(view::setImageBitmap);
 ```
 
