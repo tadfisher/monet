@@ -1,9 +1,10 @@
 package com.simple.monet;
 
-import com.google.auto.value.AutoValue;
-
 import android.graphics.Bitmap;
 import android.support.annotation.Nullable;
+
+import com.google.auto.value.AutoValue;
+
 import java.io.InputStream;
 
 @AutoValue

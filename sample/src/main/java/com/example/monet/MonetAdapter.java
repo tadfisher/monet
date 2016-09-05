@@ -1,17 +1,35 @@
 package com.example.monet;
 
-import com.example.monet.MonetAdapter.ViewHolder;
-
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
-/**
- * Created by tad on 9/4/16.
- */
+import com.example.monet.MonetAdapter.ViewHolder;
+import com.simple.monet.Monet;
 
-public class MonetAdapter extends RecyclerView.Adapter<ViewHolder> {
+import okhttp3.ResponseBody;
+import rx.Subscription;
+import rx.subscriptions.CompositeSubscription;
+
+class MonetAdapter extends RecyclerView.Adapter<ViewHolder> {
+
+    final ImgurService service;
+    CompositeSubscription subscriptions;
+
+    MonetAdapter(ImgurService service) {
+        this.service = service;
+    }
+
+    void onResume() {
+        subscriptions = new CompositeSubscription();
+    }
+
+    void onPause() {
+        if (subscriptions != null) {
+            subscriptions.unsubscribe();
+        }
+    }
 
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -22,7 +40,7 @@ public class MonetAdapter extends RecyclerView.Adapter<ViewHolder> {
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-
+        holder.bind(Data.URLS[position]);
     }
 
     @Override
@@ -30,8 +48,10 @@ public class MonetAdapter extends RecyclerView.Adapter<ViewHolder> {
         return Data.URLS.length;
     }
 
-    static final class ViewHolder extends RecyclerView.ViewHolder {
+    final class ViewHolder extends RecyclerView.ViewHolder {
+
         final ImageView view;
+        Subscription subscription;
 
         ViewHolder(ImageView itemView) {
             super(itemView);
@@ -39,7 +59,18 @@ public class MonetAdapter extends RecyclerView.Adapter<ViewHolder> {
         }
 
         void bind(String url) {
-
+            if (subscription != null) {
+                subscriptions.remove(subscription);
+                subscription.unsubscribe();
+            }
+            view.setImageDrawable(null);
+            subscription = service.fetch(url)
+                    .map(ResponseBody::byteStream)
+                    .compose(Monet.fromInputStream())
+                    .compose(Monet.fit(view))
+                    .compose(Monet.decode())
+                    .subscribe(view::setImageBitmap);
+            subscriptions.add(subscription);
         }
     }
 }
