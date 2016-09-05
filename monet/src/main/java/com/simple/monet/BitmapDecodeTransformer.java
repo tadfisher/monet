@@ -6,20 +6,24 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.Executors;
 
 import rx.Observable;
 import rx.Scheduler;
 import rx.exceptions.Exceptions;
 import rx.functions.Func1;
-import rx.schedulers.Schedulers;
 
 class BitmapDecodeTransformer implements Observable.Transformer<Request.Builder, Bitmap> {
+
+    private final Scheduler scheduler;
+
+    BitmapDecodeTransformer(Scheduler scheduler) {
+        this.scheduler = scheduler;
+    }
 
     @Override
     public Observable<Bitmap> call(final Observable<Request.Builder> requestObservable) {
         return requestObservable
-                .observeOn(DecodeSchedulerHolder.getInstance())
+                .observeOn(scheduler)
                 .map(new Func1<Request.Builder, Bitmap>() {
                     @Override
                     public Bitmap call(Request.Builder requestBuilder) {
@@ -99,18 +103,5 @@ class BitmapDecodeTransformer implements Observable.Transformer<Request.Builder,
         }
         options.inSampleSize = sampleSize;
         options.inJustDecodeBounds = false;
-    }
-
-    private static class DecodeSchedulerHolder {
-        private static final Scheduler INSTANCE =
-                Schedulers.from(Executors.newSingleThreadExecutor());
-
-        private DecodeSchedulerHolder() {
-            throw new AssertionError("No instances.");
-        }
-
-        static Scheduler getInstance() {
-            return INSTANCE;
-        }
     }
 }

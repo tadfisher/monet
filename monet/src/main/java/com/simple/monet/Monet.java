@@ -10,6 +10,7 @@ import com.simple.monet.internal.Preconditions;
 import java.io.InputStream;
 
 import rx.Observable.Transformer;
+import rx.Scheduler;
 
 public final class Monet {
 
@@ -38,7 +39,13 @@ public final class Monet {
 
     @NonNull
     public static Transformer<Request.Builder, Bitmap> decode() {
-        return new BitmapDecodeTransformer();
+        return decode(MonetSchedulers.decodeThread());
+    }
+
+    @NonNull
+    public static Transformer<Request.Builder, Bitmap> decode(@NonNull Scheduler scheduler) {
+        Preconditions.checkNotNull(scheduler, "scheduler == null");
+        return new BitmapDecodeTransformer(scheduler);
     }
 
     private Monet() {
