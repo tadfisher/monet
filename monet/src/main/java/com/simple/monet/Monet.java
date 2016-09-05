@@ -10,13 +10,18 @@ import com.simple.monet.internal.Preconditions;
 import java.io.InputStream;
 
 import rx.Observable.Transformer;
-import rx.Scheduler;
 
 public final class Monet {
 
+    private static final Transformer<InputStream, Request.Builder> fromInputStreamTransformer =
+            new InputStreamRequestTransformer();
+
+    private static final Transformer<Request.Builder, Bitmap> defaultDecodeTransformer =
+            new BitmapDecodeTransformer(MonetSchedulers.decodeThread());
+
     @CheckResult @NonNull
     public static Transformer<InputStream, Request.Builder> fromInputStream() {
-        return new InputStreamRequestTransformer();
+        return fromInputStreamTransformer;
     }
 
     @CheckResult @NonNull
@@ -37,15 +42,9 @@ public final class Monet {
         return new ImageViewRequestTransformer(imageView, false, true);
     }
 
-    @NonNull
+    @CheckResult @NonNull
     public static Transformer<Request.Builder, Bitmap> decode() {
-        return decode(MonetSchedulers.decodeThread());
-    }
-
-    @NonNull
-    public static Transformer<Request.Builder, Bitmap> decode(@NonNull Scheduler scheduler) {
-        Preconditions.checkNotNull(scheduler, "scheduler == null");
-        return new BitmapDecodeTransformer(scheduler);
+        return defaultDecodeTransformer;
     }
 
     private Monet() {
