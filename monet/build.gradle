@@ -31,4 +31,6 @@ dependencies {
     compile dep.rxjava
     compile dep.rxandroid
     compile dep.supportAnnotations
+    testCompile dep.junit
+    testCompile dep.robolectric
 }

@@ -12,7 +12,9 @@ public abstract class Request {
 
     static Builder builder() {
         return new AutoValue_Request.Builder()
-                .centerInside(false);
+                .centerInside(false)
+                .targetHeight(0)
+                .targetWidth(0);
     }
 
     boolean hasTargetSize() {
@@ -21,7 +23,7 @@ public abstract class Request {
 
     abstract boolean centerInside();
     @Nullable abstract Bitmap.Config config();
-    abstract InputStream stream();
+    @Nullable abstract InputStream stream();
     abstract int targetWidth();
     abstract int targetHeight();
 

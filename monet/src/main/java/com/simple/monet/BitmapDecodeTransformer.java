@@ -29,8 +29,10 @@ class BitmapDecodeTransformer implements Observable.Transformer<Request.Builder,
                     public Bitmap call(Request.Builder requestBuilder) {
                         try {
                             return decode(requestBuilder.build());
-                        } catch (IOException e) {
-                            throw Exceptions.propagate(e);
+                        } catch (OutOfMemoryError e) {
+                            throw new RuntimeException("Out of memory.");
+                        } catch (Throwable t) {
+                            throw Exceptions.propagate(t);
                         }
                     }
                 });
