@@ -3,18 +3,18 @@ package com.example.monet;
 final class Data {
     private static final String EXT = ".jpg";
     static final String[] URLS = {
-            "CqmBjo5" + EXT, "zkaAooq" + EXT, "0gqnEaY" + EXT,
-            "9gbQ7YR" + EXT, "aFhEEby" + EXT, "0E2tgV7" + EXT,
-            "P5JLfjk" + EXT, "nz67a4F" + EXT, "dFH34N5" + EXT,
-            "FI49ftb" + EXT, "DvpvklR" + EXT, "DNKnbG8" + EXT,
-            "yAdbrLp" + EXT, "55w5Km7" + EXT, "NIwNTMR" + EXT,
-            "DAl0KB8" + EXT, "xZLIYFV" + EXT, "HvTyeh3" + EXT,
-            "Ig9oHCM" + EXT, "7GUv9qa" + EXT, "i5vXmXp" + EXT,
-            "glyvuXg" + EXT, "u6JF6JZ" + EXT, "ExwR7ap" + EXT,
-            "Q54zMKT" + EXT, "9t6hLbm" + EXT, "F8n3Ic6" + EXT,
-            "P5ZRSvT" + EXT, "jbemFzr" + EXT, "8B7haIK" + EXT,
-            "aSeTYQr" + EXT, "OKvWoTh" + EXT, "zD3gT4Z" + EXT,
-            "z77CaIt" + EXT,
+            "D8jcKMl" + EXT, "d30wVIM" + EXT, "pAHzzwN" + EXT,
+            "vdizi2A" + EXT, "YwAlctB" + EXT, "TxUUBpK" + EXT,
+            "uoO28jg" + EXT, "adntnGU" + EXT, "AO43AKP" + EXT,
+            "07xpFjn" + EXT, "WWU9b9b" + EXT, "vkNyhIr" + EXT,
+            "QqycpsJ" + EXT, "nqB6KZe" + EXT, "7H8tQzh" + EXT,
+            "nZc9wEn" + EXT, "TRNvDOr" + EXT, "Zo4X6dN" + EXT,
+            "hOLJS4z" + EXT, "K2BV68o" + EXT, "cJzxEdv" + EXT,
+            "KRfYhg7" + EXT, "6bBNTpM" + EXT, "bbbi0MK" + EXT,
+            "nVRGF1P" + EXT, "ohc0pMv" + EXT, "LvrXetO" + EXT,
+            "JKvE3x7" + EXT, "g9pXDDM" + EXT, "VIzAZrk" + EXT,
+            "L9lNges" + EXT, "J8suM4J" + EXT, "GmOCgAY" + EXT,
+            "ic2cxpt" + EXT,
     };
 
     private Data() {
