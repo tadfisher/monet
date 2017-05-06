@@ -1,4 +1,4 @@
-package com.simple.monet;
+package monet;
 
 import android.graphics.Bitmap;
 
@@ -20,7 +20,7 @@ public class BitmapDecodeTransformerTest {
     @Test
     public void callsOnErrorForNullRequest() {
         TestSubscriber<Bitmap> subscriber = TestSubscriber.create();
-        Observable.<Request.Builder>just(null)
+        Observable.<Request>just(null)
                 .compose(new BitmapDecodeTransformer(Schedulers.immediate()))
                 .subscribe(subscriber);
         subscriber.awaitTerminalEvent();
@@ -30,7 +30,7 @@ public class BitmapDecodeTransformerTest {
     @Test
     public void callsOnErrorForIOException() {
         TestSubscriber<Bitmap> subscriber = TestSubscriber.create();
-        Observable.just(Request.builder())
+        Observable.just(Request.builder().build())
                 .compose(new BitmapDecodeTransformer(Schedulers.immediate()) {
                     @Override
                     Bitmap decode(Request request) throws IOException {
@@ -45,7 +45,7 @@ public class BitmapDecodeTransformerTest {
     @Test
     public void callsOnErrorWhenOutOfMemory() {
         TestSubscriber<Bitmap> subscriber = TestSubscriber.create();
-        Observable.just(Request.builder())
+        Observable.just(Request.builder().build())
                 .compose(new BitmapDecodeTransformer(Schedulers.immediate()) {
                     @Override
                     Bitmap decode(Request request) throws IOException {
@@ -60,7 +60,7 @@ public class BitmapDecodeTransformerTest {
     @Test(expected = StackOverflowError.class)
     public void failsOnFatalError() {
         TestSubscriber<Bitmap> subscriber = TestSubscriber.create();
-        Observable.just(Request.builder())
+        Observable.just(Request.builder().build())
                 .compose(new BitmapDecodeTransformer(Schedulers.immediate()) {
                     @Override
                     Bitmap decode(Request request) throws IOException {

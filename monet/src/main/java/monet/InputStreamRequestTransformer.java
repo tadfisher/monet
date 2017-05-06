@@ -1,9 +1,7 @@
-package com.simple.monet;
-
-import com.simple.monet.Request.Builder;
+package monet;
 
 import java.io.InputStream;
-
+import monet.Request.Builder;
 import rx.Observable;
 import rx.Observable.Transformer;
 import rx.functions.Func1;

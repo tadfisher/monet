@@ -4,10 +4,9 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-
 import com.example.monet.MonetAdapter.ViewHolder;
-import com.simple.monet.Monet;
-
+import monet.Monet;
+import monet.Request;
 import okhttp3.ResponseBody;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
@@ -60,12 +59,13 @@ class MonetAdapter extends RecyclerView.Adapter<ViewHolder> {
             }
             view.setImageDrawable(null);
             subscription = service.fetch(url)
-                    .map(ResponseBody::byteStream)
-                    .compose(Monet.fromInputStream())
-                    .compose(Monet.fit(view))
-                    .compose(Monet.decode())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(view::setImageBitmap);
+                .map(ResponseBody::byteStream)
+                .compose(Monet.fromInputStream())
+                .compose(Monet.fit(view))
+                .map(Request.Builder::build)
+                .compose(Monet.decode())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(view::setImageBitmap);
             subscriptions.add(subscription);
         }
     }

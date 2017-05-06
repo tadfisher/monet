@@ -1,4 +1,4 @@
-package com.simple.monet;
+package monet;
 
 import android.widget.ImageView;
 

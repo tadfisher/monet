@@ -1,4 +1,4 @@
-package com.simple.monet;
+package monet;
 
 import android.os.HandlerThread;
 import android.os.Process;

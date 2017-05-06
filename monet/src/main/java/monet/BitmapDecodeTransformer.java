@@ -1,4 +1,4 @@
-package com.simple.monet;
+package monet;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -12,7 +12,7 @@ import rx.Scheduler;
 import rx.exceptions.Exceptions;
 import rx.functions.Func1;
 
-class BitmapDecodeTransformer implements Observable.Transformer<Request.Builder, Bitmap> {
+class BitmapDecodeTransformer implements Observable.Transformer<Request, Bitmap> {
 
     private final Scheduler scheduler;
 
@@ -21,14 +21,14 @@ class BitmapDecodeTransformer implements Observable.Transformer<Request.Builder,
     }
 
     @Override
-    public Observable<Bitmap> call(final Observable<Request.Builder> requestObservable) {
+    public Observable<Bitmap> call(final Observable<Request> requestObservable) {
         return requestObservable
                 .observeOn(scheduler)
-                .map(new Func1<Request.Builder, Bitmap>() {
+                .map(new Func1<Request, Bitmap>() {
                     @Override
-                    public Bitmap call(Request.Builder requestBuilder) {
+                    public Bitmap call(Request request) {
                         try {
-                            return decode(requestBuilder.build());
+                            return decode(request);
                         } catch (OutOfMemoryError e) {
                             throw new RuntimeException("Out of memory.");
                         } catch (Throwable t) {

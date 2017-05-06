@@ -1,19 +1,16 @@
 buildscript {
     dependencies {
         classpath dep.androidPlugin
-        classpath dep.apt
     }
 }
 
 apply plugin: 'com.android.library'
-apply plugin: 'com.neenbedankt.android-apt'
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
 
     compileOptions {
-        // TODO use Java 8 language features via JACK
         // https://code.google.com/p/android/issues/detail?id=211386
         sourceCompatibility JavaVersion.VERSION_1_7
         targetCompatibility JavaVersion.VERSION_1_7
@@ -26,8 +23,8 @@ android {
 }
 
 dependencies {
-    provided dep.autovalue
-    apt dep.autovalue
+    annotationProcessor dep.autovalue
+    provided dep.autovalueAnnotations
     compile dep.rxjava
     compile dep.rxandroid
     compile dep.supportAnnotations

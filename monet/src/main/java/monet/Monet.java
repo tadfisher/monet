@@ -1,14 +1,11 @@
-package com.simple.monet;
+package monet;
 
 import android.graphics.Bitmap;
 import android.support.annotation.CheckResult;
 import android.support.annotation.NonNull;
 import android.widget.ImageView;
-
-import com.simple.monet.internal.Preconditions;
-
 import java.io.InputStream;
-
+import monet.internal.Preconditions;
 import rx.Observable.Transformer;
 
 public final class Monet {
@@ -16,7 +13,7 @@ public final class Monet {
     private static final Transformer<InputStream, Request.Builder> fromInputStreamTransformer =
             new InputStreamRequestTransformer();
 
-    private static final Transformer<Request.Builder, Bitmap> defaultDecodeTransformer =
+    private static final Transformer<Request, Bitmap> defaultDecodeTransformer =
             new BitmapDecodeTransformer(MonetSchedulers.decodeThread());
 
     @CheckResult @NonNull
@@ -43,7 +40,7 @@ public final class Monet {
     }
 
     @CheckResult @NonNull
-    public static Transformer<Request.Builder, Bitmap> decode() {
+    public static Transformer<Request, Bitmap> decode() {
         return defaultDecodeTransformer;
     }
 

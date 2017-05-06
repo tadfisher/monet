@@ -25,13 +25,9 @@ android {
     defaultConfig {
         applicationId 'com.example.monet'
         minSdkVersion 16
-        targetSdkVersion 24
+        targetSdkVersion 25
         versionCode 1
         versionName '1.0'
-
-        jackOptions {
-            enabled true
-        }
     }
 
     buildTypes {

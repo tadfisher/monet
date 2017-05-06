@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.simple.monet.internal;
+package monet.internal;
 
 public final class Preconditions {
     public static void checkArgument(boolean assertion, String message) {
