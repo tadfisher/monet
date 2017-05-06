@@ -1,50 +1,31 @@
 package monet;
 
 import android.graphics.Bitmap;
-import android.support.annotation.CheckResult;
-import android.support.annotation.NonNull;
-import android.widget.ImageView;
-import java.io.InputStream;
-import monet.internal.Preconditions;
-import rx.Observable.Transformer;
+import io.reactivex.Single;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 
 public final class Monet {
 
-    private static final Transformer<InputStream, Request.Builder> fromInputStreamTransformer =
-            new InputStreamRequestTransformer();
+  public static Single<Bitmap> decodeSingle(Request request) {
+    return deferred(request)
+        .observeOn(MonetSchedulers.decodeThread())
+        .map(BitmapDecoder::decode);
+  }
 
-    private static final Transformer<Request, Bitmap> defaultDecodeTransformer =
-            new BitmapDecodeTransformer(MonetSchedulers.decodeThread());
-
-    @CheckResult @NonNull
-    public static Transformer<InputStream, Request.Builder> fromInputStream() {
-        return fromInputStreamTransformer;
+  private static Single<Request> deferred(Request request) {
+    if (request.hasTargetSize() || request.fit() == null) {
+      return Single.just(request);
+    } else {
+      return new ViewDimensionsSingle(request.fit())
+          .subscribeOn(AndroidSchedulers.mainThread())
+          .map(size -> request.newBuilder()
+              .targetWidth(size.width())
+              .targetHeight(size.height())
+              .build());
     }
+  }
 
-    @CheckResult @NonNull
-    public static Transformer<Request.Builder, Request.Builder> fit(@NonNull ImageView imageView) {
-        Preconditions.checkNotNull(imageView, "imageView == null");
-        return new ImageViewRequestTransformer(imageView, true, true);
-    }
-
-    @CheckResult @NonNull
-    public static Transformer<Request.Builder, Request.Builder> fitX(@NonNull ImageView imageView) {
-        Preconditions.checkNotNull(imageView, "imageView == null");
-        return new ImageViewRequestTransformer(imageView, true, false);
-    }
-
-    @CheckResult @NonNull
-    public static Transformer<Request.Builder, Request.Builder> fitY(@NonNull ImageView imageView) {
-        Preconditions.checkNotNull(imageView, "imageView == null");
-        return new ImageViewRequestTransformer(imageView, false, true);
-    }
-
-    @CheckResult @NonNull
-    public static Transformer<Request, Bitmap> decode() {
-        return defaultDecodeTransformer;
-    }
-
-    private Monet() {
-        throw new AssertionError("No instances.");
-    }
+  private Monet() {
+    throw new AssertionError("No instances.");
+  }
 }

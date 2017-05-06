@@ -1,33 +1,33 @@
 buildscript {
-    dependencies {
-        classpath dep.androidPlugin
-    }
+  dependencies {
+    classpath dep.androidPlugin
+  }
 }
 
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion rootProject.ext.compileSdkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
+  compileSdkVersion rootProject.ext.compileSdkVersion
+  buildToolsVersion rootProject.ext.buildToolsVersion
 
-    compileOptions {
-        // https://code.google.com/p/android/issues/detail?id=211386
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
-    }
+  compileOptions {
+    sourceCompatibility rootProject.ext.sourceCompatibilityVersion
+    targetCompatibility rootProject.ext.targetCompatibilityVersion
+  }
 
-    defaultConfig {
-        minSdkVersion rootProject.ext.minSdkVersion
-        // TODO consumerProguardFiles 'consumer-proguard-rules.txt'
-    }
+  defaultConfig {
+    minSdkVersion rootProject.ext.minSdkVersion
+    // TODO consumerProguardFiles 'consumer-proguard-rules.txt'
+  }
 }
 
 dependencies {
-    annotationProcessor dep.autovalue
-    provided dep.autovalueAnnotations
-    compile dep.rxjava
-    compile dep.rxandroid
-    compile dep.supportAnnotations
-    testCompile dep.junit
-    testCompile dep.robolectric
+  annotationProcessor dep.autovalue
+  annotationProcessor dep.autovalueWith
+  provided dep.autovalueAnnotations
+  compile dep.rxjava
+  compile dep.rxandroid
+  compile dep.supportAnnotations
+  testCompile dep.junit
+  testCompile dep.robolectric
 }

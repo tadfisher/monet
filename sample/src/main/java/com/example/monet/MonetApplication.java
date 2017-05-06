@@ -9,10 +9,9 @@ import android.os.StrictMode;
 
 public class MonetApplication extends Application {
 
-    @Override
-    public void onCreate() {
-        super.onCreate();
+  @Override public void onCreate() {
+    super.onCreate();
 
-        StrictMode.enableDefaults();
-    }
+    StrictMode.enableDefaults();
+  }
 }

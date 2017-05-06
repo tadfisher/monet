@@ -1,38 +1,38 @@
 buildscript {
-    dependencies {
-        classpath dep.androidPlugin
-    }
+  dependencies {
+    classpath dep.androidPlugin
+  }
 }
 
 apply plugin: 'com.android.application'
 
 dependencies {
-    compile dep.retrofitRxjava
-    compile dep.supportAppcompat
-    compile dep.supportRecyclerView
-    compile project(':monet')
+  compile dep.retrofitRxjava
+  compile dep.supportAppcompat
+  compile dep.supportRecyclerView
+  compile project(':monet')
 }
 
 android {
-    compileSdkVersion rootProject.ext.compileSdkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
+  compileSdkVersion rootProject.ext.compileSdkVersion
+  buildToolsVersion rootProject.ext.buildToolsVersion
 
-    compileOptions {
-        sourceCompatibility rootProject.ext.sourceCompatibilityVersion
-        targetCompatibility rootProject.ext.targetCompatibilityVersion
-    }
+  compileOptions {
+    sourceCompatibility rootProject.ext.sourceCompatibilityVersion
+    targetCompatibility rootProject.ext.targetCompatibilityVersion
+  }
 
-    defaultConfig {
-        applicationId 'com.example.monet'
-        minSdkVersion 16
-        targetSdkVersion 25
-        versionCode 1
-        versionName '1.0'
-    }
+  defaultConfig {
+    applicationId 'com.example.monet'
+    minSdkVersion 16
+    targetSdkVersion 25
+    versionCode 1
+    versionName '1.0'
+  }
 
-    buildTypes {
-        debug {
-            applicationIdSuffix '.debug'
-        }
+  buildTypes {
+    debug {
+      applicationIdSuffix '.debug'
     }
+  }
 }

@@ -15,13 +15,13 @@ import rx.schedulers.Schedulers;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(manifest = Config.NONE)
-public class BitmapDecodeTransformerTest {
+public class BitmapDecoderTest {
 
     @Test
     public void callsOnErrorForNullRequest() {
         TestSubscriber<Bitmap> subscriber = TestSubscriber.create();
         Observable.<Request>just(null)
-                .compose(new BitmapDecodeTransformer(Schedulers.immediate()))
+                .compose(new BitmapDecoder(Schedulers.immediate()))
                 .subscribe(subscriber);
         subscriber.awaitTerminalEvent();
         subscriber.assertError(NullPointerException.class);
@@ -31,7 +31,7 @@ public class BitmapDecodeTransformerTest {
     public void callsOnErrorForIOException() {
         TestSubscriber<Bitmap> subscriber = TestSubscriber.create();
         Observable.just(Request.builder().build())
-                .compose(new BitmapDecodeTransformer(Schedulers.immediate()) {
+                .compose(new BitmapDecoder(Schedulers.immediate()) {
                     @Override
                     Bitmap decode(Request request) throws IOException {
                         throw new IOException();
@@ -46,7 +46,7 @@ public class BitmapDecodeTransformerTest {
     public void callsOnErrorWhenOutOfMemory() {
         TestSubscriber<Bitmap> subscriber = TestSubscriber.create();
         Observable.just(Request.builder().build())
-                .compose(new BitmapDecodeTransformer(Schedulers.immediate()) {
+                .compose(new BitmapDecoder(Schedulers.immediate()) {
                     @Override
                     Bitmap decode(Request request) throws IOException {
                         throw new OutOfMemoryError();
@@ -61,7 +61,7 @@ public class BitmapDecodeTransformerTest {
     public void failsOnFatalError() {
         TestSubscriber<Bitmap> subscriber = TestSubscriber.create();
         Observable.just(Request.builder().build())
-                .compose(new BitmapDecodeTransformer(Schedulers.immediate()) {
+                .compose(new BitmapDecoder(Schedulers.immediate()) {
                     @Override
                     Bitmap decode(Request request) throws IOException {
                         throw new StackOverflowError();
