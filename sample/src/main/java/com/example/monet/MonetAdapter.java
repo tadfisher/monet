@@ -1,10 +1,14 @@
 package com.example.monet;
 
+import com.example.monet.MonetAdapter.ViewHolder;
+
+import android.graphics.Bitmap;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import com.example.monet.MonetAdapter.ViewHolder;
+
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
@@ -15,6 +19,7 @@ class MonetAdapter extends RecyclerView.Adapter<ViewHolder> {
 
   private final ImgurService service;
   private final CompositeDisposable disposables = new CompositeDisposable();
+  private final Monet monet = new Monet.Builder().build();
 
   MonetAdapter(ImgurService service) {
     this.service = service;
@@ -54,12 +59,10 @@ class MonetAdapter extends RecyclerView.Adapter<ViewHolder> {
       }
       view.setImageDrawable(null);
       disposable = service.fetch(url)
-          .map(body -> Request.builder(body.byteStream())
-              .scale(ImageView.ScaleType.CENTER_CROP, view)
-              .build())
-          .flatMap(Monet::decodeSingle)
+          .map(body -> Request.builder(body.source()).fit(view).build())
+          .compose(monet.decoder(Bitmap.class))
           .observeOn(AndroidSchedulers.mainThread())
-          .subscribe(view::setImageBitmap);
+          .subscribe(view::setImageBitmap, error -> Log.e("Monet", "Error decoding bitmap", error));
       disposables.add(disposable);
     }
   }

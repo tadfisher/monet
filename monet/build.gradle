@@ -25,6 +25,7 @@ dependencies {
   annotationProcessor dep.autovalue
   annotationProcessor dep.autovalueWith
   provided dep.autovalueAnnotations
+  compile dep.okio
   compile dep.rxjava
   compile dep.rxandroid
   compile dep.supportAnnotations
