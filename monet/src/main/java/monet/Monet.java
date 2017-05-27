@@ -6,14 +6,9 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import monet.bitmap.BitmapDecoder;
 
 public final class Monet {
   static final List<Decoder.Factory> BUILT_IN_FACTORIES = new ArrayList<>();
-
-  static {
-    BUILT_IN_FACTORIES.add(BitmapDecoder.FACTORY);
-  }
 
   private final List<Decoder.Factory> factories;
   private final Map<Type, Decoder<?>> decoderCache = new LinkedHashMap<>();
@@ -41,7 +36,7 @@ public final class Monet {
     }
 
     for (int i = 0, size = factories.size(); i < size; i++) {
-      Decoder<T> result = (Decoder<T>) factories.get(i).create(type, this);
+      Decoder<T> result = (Decoder<T>) factories.get(i).get(type, this);
       if (result != null) {
         synchronized (decoderCache) {
           decoderCache.put(type, result);
@@ -62,7 +57,7 @@ public final class Monet {
       throw new IllegalArgumentException("Unable to skip past unknown factory " + skipPast);
     }
     for (int i = skipPastIndex + 1, size = factories.size(); i < size; i++) {
-      Decoder<T> result = (Decoder<T>) factories.get(i).create(type, this);
+      Decoder<T> result = (Decoder<T>) factories.get(i).get(type, this);
       if (result != null) return result;
     }
     throw new IllegalArgumentException("No next Decoder for " + type);

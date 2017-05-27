@@ -12,7 +12,7 @@ public final class MonetSchedulers {
 
   private static final class SchedulerHolder {
 
-    private static final DecodeThread THREAD = new DecodeThread();
+    private static final DecodeThread THREAD = new DecodeThread("Monet-DecodeThread");
 
     static {
       THREAD.start();
@@ -25,17 +25,26 @@ public final class MonetSchedulers {
       MonetPlugins.initDecodeThreadScheduler(() -> SchedulerHolder.DEFAULT);
 
   /**
-   * A {@link Scheduler} which performs work serially on a dedicated background thread. This is
-   * intended to avoid thrashing the heap during bitmap decode operations.
+   * A {@link Scheduler} which performs work serially on a shared, dedicated background thread.
+   * This is intended to avoid thrashing the heap during bitmap decode operations.
    */
   public static Scheduler decodeThread() {
     return MonetPlugins.onDecodeThreadScheduler(DECODE_THREAD);
   }
 
+  /**
+   * A {@link Scheduler} which performs work serially on a new dedicated background thread. This is
+   * intended to avoid thrashing the heap during bitmap decode operations.
+   */
+  public static Scheduler decodeThread(String name) {
+    return MonetPlugins.onDecodeThreadScheduler(MonetPlugins.initDecodeThreadScheduler(() ->
+        AndroidSchedulers.from(new DecodeThread(name).getLooper())));
+  }
+
   private static class DecodeThread extends HandlerThread {
 
-    DecodeThread() {
-      super("Monet-DecodeThread", Process.THREAD_PRIORITY_BACKGROUND);
+    DecodeThread(String name) {
+      super(name, Process.THREAD_PRIORITY_BACKGROUND);
     }
   }
 

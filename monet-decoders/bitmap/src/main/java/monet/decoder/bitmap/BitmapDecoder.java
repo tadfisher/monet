@@ -1,12 +1,14 @@
-package monet.bitmap;
+package monet.decoder.bitmap;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.view.View;
 import android.widget.ImageView;
+import io.reactivex.Scheduler;
 import java.io.IOException;
 import java.io.InputStream;
-
+import java.util.Collections;
+import java.util.Set;
 import monet.DecodeResult;
 import monet.Decoder;
 import monet.Request;
@@ -16,48 +18,29 @@ import okio.ByteString;
 
 public class BitmapDecoder extends Decoder<Bitmap> {
 
-  public static final Decoder.Factory FACTORY = (type, monet) -> {
-    if (type == Bitmap.class) {
-      return new BitmapDecoder();
-    }
-    return null;
-  };
+  public enum ImageType {
+    BMP(ByteString.encodeUtf8("BM")),
+    GIF(ByteString.encodeUtf8("GIF87a"), ByteString.encodeUtf8("GIF89a")),
+    ICO(ByteString.decodeHex("00000100"), ByteString.decodeHex("00000200")),
+    JPEG(ByteString.decodeHex("ffd8ff")),
+    WEBP(ByteString.encodeUtf8("RIFF"));
 
-  private static final ByteString[] SIGNATURES = new ByteString[] {
-      // BMP (0)
-      ByteString.encodeUtf8("BM"),
-      // GIF (1-2)
-      ByteString.encodeUtf8("GIF87a"), ByteString.encodeUtf8("GIF89a"),
-      // ICO/CUR (3-4)
-      ByteString.decodeHex("00000100"), ByteString.decodeHex("00000200"),
-      // JPEG (5)
-      ByteString.decodeHex("ffd8ff"),
-      // PNG (6)
-      ByteString.decodeHex("89504e470d0a1a0a"),
-      // WebP (7)
-      ByteString.encodeUtf8("RIFF")
-  };
+    final ByteString[] signatures;
+
+    ImageType(ByteString... signatures) {
+      this.signatures = signatures;
+    }
+  }
 
   private static final int MAX_SIGNATURE_LENGTH = 16;
 
   private static final ByteString WEBP_SUFFIX = ByteString.encodeUtf8("WEBP");
 
-  private static boolean checkSignature(BufferedSource source) throws IOException {
-    if (!source.request(MAX_SIGNATURE_LENGTH)) {
-      return false;
-    }
-    final Buffer buf = source.buffer();
-    final ByteString bytes = buf.snapshot(MAX_SIGNATURE_LENGTH);
-    for (int i = 0, size = SIGNATURES.length; i < size; i++) {
-      if (bytes.startsWith(SIGNATURES[i])) {
-        // WebP's signature is actually 'RIFFxxxxWEBP'
-        if (i == 7 && !buf.rangeEquals(8, WEBP_SUFFIX)) {
-          return false;
-        }
-        return true;
-      }
-    }
-    return false;
+  private final Set<ImageType> imageTypes;
+
+  BitmapDecoder(Scheduler scheduler, Set<ImageType> imageTypes) {
+    super(scheduler);
+    this.imageTypes = Collections.unmodifiableSet(imageTypes);
   }
 
   @Override
@@ -96,6 +79,25 @@ public class BitmapDecoder extends Decoder<Bitmap> {
       return DecodeResult.error(new IOException("Failed to decode bitmap."));
     }
     return DecodeResult.success(bitmap);
+  }
+
+  private boolean checkSignature(BufferedSource source) throws IOException {
+    if (!source.request(MAX_SIGNATURE_LENGTH)) {
+      return false;
+    }
+    final Buffer buf = source.buffer();
+    final ByteString bytes = buf.snapshot(MAX_SIGNATURE_LENGTH);
+    for (ImageType type : imageTypes) {
+      for (ByteString signature : type.signatures) {
+        if (bytes.startsWith(signature)) {
+          if (type == ImageType.WEBP && !buf.rangeEquals(8, WEBP_SUFFIX)) {
+            return false;
+          }
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private static BitmapFactory.Options createBitmapOptions(Request request) {

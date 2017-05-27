@@ -1,16 +1,13 @@
-buildscript {
-  dependencies {
-    classpath dep.androidPlugin
-  }
-}
-
 apply plugin: 'com.android.application'
 
 dependencies {
-  compile dep.retrofitRxjava
-  compile dep.supportAppcompat
-  compile dep.supportRecyclerView
-  compile project(':monet')
+  implementation dep.rxandroid
+  implementation dep.rxjava
+  implementation dep.retrofitRxjava
+  implementation dep.supportAppcompat
+  implementation dep.supportRecyclerView
+  implementation project(':monet')
+  implementation project(':decoder-bitmap')
 }
 
 android {

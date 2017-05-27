@@ -1,3 +1,11 @@
 rootProject.name = 'monet-parent'
 
-include ':sample', ':monet'
+include ':monet'
+include ':decoder-bitmap'
+include ':decoder-gif'
+
+include ':sample'
+
+project(':decoder-bitmap').projectDir = file('monet-decoders/bitmap')
+project(':decoder-gif').projectDir = file('monet-decoders/gif')
+

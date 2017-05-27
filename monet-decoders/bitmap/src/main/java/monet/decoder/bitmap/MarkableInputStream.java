@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package monet.bitmap;
+package monet.decoder.bitmap;
 
 import android.support.annotation.NonNull;
 import java.io.BufferedInputStream;

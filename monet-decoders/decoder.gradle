@@ -11,18 +11,9 @@ android {
 
   defaultConfig {
     minSdkVersion rootProject.ext.minSdkVersion
-    // TODO consumerProguardFiles 'consumer-proguard-rules.txt'
   }
 }
 
 dependencies {
-  annotationProcessor dep.autovalue
-  annotationProcessor dep.autovalueWith
-  compileOnly dep.autovalueAnnotations
-  api dep.okio
-  api dep.rxjava
-  api dep.rxandroid
-  api dep.supportAnnotations
-  testImplementation dep.junit
-  testImplementation dep.robolectric
+  implementation project(':monet')
 }
