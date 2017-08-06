@@ -11,21 +11,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package monet;
+package monet.internal;
 
 import android.os.Looper;
 import io.reactivex.Observer;
 import io.reactivex.SingleObserver;
 
-final class Preconditions {
+public final class Preconditions {
 
-  static void checkNotNull(Object value, String message) {
+  public static void checkNotNull(Object value, String message) {
     if (value == null) {
       throw new NullPointerException(message);
     }
   }
 
-  static boolean checkMainThread(Observer<?> observer) {
+  public static boolean checkMainThread(Observer<?> observer) {
     if (Looper.myLooper() != Looper.getMainLooper()) {
       observer.onError(new IllegalStateException(
           "Expected to be called on the main thread but was " + Thread.currentThread().getName()));
@@ -34,7 +34,7 @@ final class Preconditions {
     return true;
   }
 
-  static boolean checkMainThread(SingleObserver<?> observer) {
+  public static boolean checkMainThread(SingleObserver<?> observer) {
     if (Looper.myLooper() != Looper.getMainLooper()) {
       observer.onError(new IllegalStateException(
           "Expected to be called on the main thread but was " + Thread.currentThread().getName()));

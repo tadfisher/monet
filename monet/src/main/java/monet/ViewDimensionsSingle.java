@@ -7,7 +7,7 @@ import io.reactivex.Single;
 import io.reactivex.SingleObserver;
 import io.reactivex.android.MainThreadDisposable;
 
-import static monet.Preconditions.checkMainThread;
+import static monet.internal.Preconditions.checkMainThread;
 
 class ViewDimensionsSingle extends Single<ViewDimensions> {
 

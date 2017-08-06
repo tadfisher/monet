@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import monet.internal.Preconditions;
 
 public final class Monet {
   static final List<Decoder.Factory> BUILT_IN_FACTORIES = new ArrayList<>();
