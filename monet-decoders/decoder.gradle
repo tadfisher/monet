@@ -18,4 +18,5 @@ dependencies {
   implementation project(':monet')
   compileOnly dep.jsr305
   testImplementation dep.junit
+  testImplementation dep.hamcrest
 }

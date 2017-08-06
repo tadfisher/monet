@@ -45,6 +45,7 @@ ext {
 
          // Tests
          junit               : 'junit:junit:4.12',
+         hamcrest            : 'org.hamcrest:hamcrest-junit:2.0.0.0',
          robolectric         : 'org.robolectric:robolectric:3.4.2',
 
          // Sample application

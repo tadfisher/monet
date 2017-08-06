@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.util.Properties;
 import okio.ByteString;
 import okio.Okio;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -12,6 +13,9 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.junit.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(Parameterized.class)
@@ -20,7 +24,8 @@ public class GifSourceTest {
   @Parameters(name = "{0}")
   public static Object[] params() {
     return new Object[] {
-        "gifgrid"
+        "gifgrid",
+        "interlaced"
     };
   }
 
@@ -38,46 +43,51 @@ public class GifSourceTest {
     p.load(getClass().getResourceAsStream(image + ".properties"));
   }
 
-  @Test
-  public void imageHeader() throws IOException {
-    source.readSignature();
-    GifSource.Format format = source.readHeader();
-
-    assertEquals(i("width"), format.width);
-    assertEquals(i("height"), format.height);
-    assertEquals(x("globalColorTable"), format.globalColorTable.readByteString());
-    assertEquals(i("globalColorTableSize"), format.globalColorTableSize);
-    assertEquals(i("backgroundIndex"), format.backgroundIndex);
+  @After
+  public void teardown() throws IOException {
+    source.close();
   }
 
   @Test
-  public void frameHeader() throws IOException {
-    source.readSignature();
-    source.readHeader();
-    source.blockSource.readHeader();
+  public void readsHeader() throws IOException {
+    GifSource.Header header = source.readHeader();
 
-    GifBlockSource.Frame frame = source.blockSource.frame;
-
-    assertEquals(i("0.imageLeftPosition"), frame.imageLeftPosition);
-    assertEquals(i("0.imageTopPosition"), frame.imageTopPosition);
-    assertEquals(i("0.imageWidth"), frame.imageWidth);
-    assertEquals(i("0.imageHeight"), frame.imageHeight);
-    assertEquals(b("0.localColorTableFlag"), frame.localColorTableFlag);
-    assertEquals(b("0.interlaceFlag"), frame.interlaceFlag);
-    assertEquals(b("0.sortFlag"), frame.sortFlag);
-    assertEquals(i("0.localColorTableSize"), frame.localColorTableSize);
+    assertEquals("width", i("width"), header.width);
+    assertEquals("height", i("height"), header.height);
+    assertEquals("globalColorTable", s("globalColorTable"),
+        header.globalColorTable.readByteString().hex());
+    assertEquals("globalColorTableSize", i("globalColorTableSize"), header.globalColorTableSize);
+    assertEquals("backgroundIndex", i("backgroundIndex"), header.backgroundIndex);
   }
 
   @Test
-  public void frameData() throws IOException {
-    source.readSignature();
-    source.readHeader();
-    source.blockSource.readHeader();
-    source.blockSource.readData();
+  public void readsFrames() throws IOException {
+    GifSource.Frame frame;
+    int i;
 
-    GifBlockSource.Frame frame = source.blockSource.frame;
+    for (i = 0; ((frame = source.readFrame()) != null); i++) {
+      assertThat("exceeded frame count", i, lessThan(i("frames")));
+      assertEquals("imageLeftPosition[" + i + "]",
+          i(i + ".imageLeftPosition"), frame.imageLeftPosition);
+      assertEquals("imageTopPosition[" + i + "]",
+          i(i + ".imageTopPosition"), frame.imageTopPosition);
+      assertEquals("imageWidth[" + i + "]",
+          i(i + ".imageWidth"), frame.imageWidth);
+      assertEquals("imageHeight[" + i + "]",
+          i(i + ".imageHeight"), frame.imageHeight);
+      assertEquals("localColorTableFlag[" + i + "]",
+          b(i + ".localColorTableFlag"), frame.localColorTableFlag);
+      assertEquals("interlaceFlag[" + i + "]",
+          b(i + ".interlaceFlag"), frame.interlaceFlag);
+      assertEquals("sortFlag[" + i + "]",
+          b(i + ".sortFlag"), frame.sortFlag);
+      assertEquals("localColorTableSize[" + i + "]",
+          i(i + ".localColorTableSize"), frame.localColorTableSize);
+      assertEquals("imageData[" + i + "]",
+          s(i + ".imageData"), ByteString.of(frame.imageData).hex());
+    }
 
-    assertEquals(x("0.imageData"), ByteString.of(frame.imageData));
+    assertThat("missing frames", i, equalTo(i("frames")));
   }
 
   private boolean b(String key) {
@@ -88,7 +98,7 @@ public class GifSourceTest {
     return Integer.valueOf(p.getProperty(key));
   }
 
-  private ByteString x(String key) {
-    return ByteString.decodeHex(p.getProperty(key));
+  private String s(String key) {
+    return p.getProperty(key);
   }
 }
