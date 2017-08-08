@@ -3,7 +3,6 @@ package monet.decoder.gif;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-import okio.ByteString;
 import okio.Okio;
 import org.junit.After;
 import org.junit.Before;
@@ -25,7 +24,8 @@ public class GifSourceTest {
   public static Object[] params() {
     return new Object[] {
         "gifgrid",
-        "interlaced"
+        "interlaced",
+        "animated-simple"
     };
   }
 
@@ -54,10 +54,9 @@ public class GifSourceTest {
 
     assertEquals("width", i("width"), header.width);
     assertEquals("height", i("height"), header.height);
-    assertEquals("globalColorTable", s("globalColorTable"),
-        header.globalColorTable.readByteString().hex());
     assertEquals("globalColorTableSize", i("globalColorTableSize"), header.globalColorTableSize);
     assertEquals("backgroundIndex", i("backgroundIndex"), header.backgroundIndex);
+    assertEquals("loopCount", i("loopCount"), header.loopCount);
   }
 
   @Test
@@ -83,8 +82,8 @@ public class GifSourceTest {
           b(i + ".sortFlag"), frame.sortFlag);
       assertEquals("localColorTableSize[" + i + "]",
           i(i + ".localColorTableSize"), frame.localColorTableSize);
-      assertEquals("imageData[" + i + "]",
-          s(i + ".imageData"), ByteString.of(frame.imageData).hex());
+      assertEquals("pixelData[" + i + "]",
+          s(i + ".pixelData"), frame.pixelData.hex());
     }
 
     assertThat("missing frames", i, equalTo(i("frames")));
