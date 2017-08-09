@@ -140,28 +140,6 @@ public final class GifSource implements Source {
     final int backgroundIndex = readByte();
     source.skip(1); // Ignore pixel aspect ratio.
 
-    // Global Color Table
-    //
-    //       7 6 5 4 3 2 1 0        Field Name                    Type
-    //      +===============+
-    //   0  |               |       Red 0                         Byte
-    //      +-             -+
-    //   1  |               |       Green 0                       Byte
-    //      +-             -+
-    //   2  |               |       Blue 0                        Byte
-    //      +-             -+
-    //   3  |               |       Red 1                         Byte
-    //      +-             -+
-    //      |               |       Green 1                       Byte
-    //      +-             -+
-    //  up  |               |
-    //      +-   . . . .   -+       ...
-    //  to  |               |
-    //      +-             -+
-    //      |               |       Green 255                     Byte
-    //      +-             -+
-    // 767  |               |       Blue 255                      Byte
-    //      +===============+
     int[] globalColorTable = null;
     if ((packed & 0x80) != 0 && globalColorTableSize > 0) {
       globalColorTable = readColorTable(globalColorTableSize);
@@ -202,7 +180,7 @@ public final class GifSource implements Source {
           readFrameExtension(frame);
           break;
         case 0x2c:
-          readFrameHeader(frame);
+          readImageDescriptor(frame);
           break;
         case 0x3b:
           section = SECTION_DONE;
@@ -305,7 +283,7 @@ public final class GifSource implements Source {
     }
   }
 
-  private void readFrameHeader(Frame frame) throws IOException {
+  private void readImageDescriptor(Frame frame) throws IOException {
     // Image Descriptor
     //
     //     7 6 5 4 3 2 1 0        Field Name                    Type
@@ -384,7 +362,7 @@ public final class GifSource implements Source {
   private void readFrameImageData(Frame frame) throws IOException {
     // TODO dispose previous frame (populate new frame data?)
     frame.indexData = readFrameIndexData(frame);
-    readFramePixelData(frame);
+    frame.pixelData = readFramePixelData(frame);
     frameSection = FRAME_HEADER;
   }
 
@@ -549,7 +527,7 @@ public final class GifSource implements Source {
     return indexData.snapshot();
   }
 
-  private void readFramePixelData(final Frame frame) throws IOException {
+  private ByteString readFramePixelData(final Frame frame) throws IOException {
     Buffer pixelData = new Buffer();
     ByteString indexData = frame.indexData;
     int[] colors = frame.activeColorTable;
@@ -578,12 +556,12 @@ public final class GifSource implements Source {
 
       for (int dx = 0; dx < w; dx++) {
         final int index = indexData.getByte(sy * w + dx) & 0xff;
-        final int color = index == transparentIndex ? 0 : colors[index];
+        final int color = index == transparentIndex ? colors[index] & 0x00ffffff : colors[index];
         pixelData.writeInt(color);
       }
     }
 
-    frame.pixelData = pixelData.snapshot();
+    return pixelData.snapshot();
   }
 
   @Override public Timeout timeout() {
@@ -603,12 +581,34 @@ public final class GifSource implements Source {
   }
 
   private int[] readColorTable(int count) throws IOException {
+    // Global Color Table
+    //
+    //       7 6 5 4 3 2 1 0        Field Name                    Type
+    //      +===============+
+    //   0  |               |       Red 0                         Byte
+    //      +-             -+
+    //   1  |               |       Green 0                       Byte
+    //      +-             -+
+    //   2  |               |       Blue 0                        Byte
+    //      +-             -+
+    //   3  |               |       Red 1                         Byte
+    //      +-             -+
+    //      |               |       Green 1                       Byte
+    //      +-             -+
+    //  up  |               |
+    //      +-   . . . .   -+       ...
+    //  to  |               |
+    //      +-             -+
+    //      |               |       Green 255                     Byte
+    //      +-             -+
+    // 767  |               |       Blue 255                      Byte
+    //      +===============+
     source.require(count * 3);
     int[] table = new int[count];
     for (int i = 0; i < count; i++) {
-      table[i] = source.readByte() & 0xff
+      table[i] = ((source.readByte() & 0xff) << 16)
           | ((source.readByte() & 0xff) << 8)
-          | ((source.readByte() & 0xff) << 16)
+          | (source.readByte() & 0xff)
           | 0xff000000;
     }
     return table;
