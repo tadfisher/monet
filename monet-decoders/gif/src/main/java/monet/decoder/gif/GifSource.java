@@ -49,6 +49,7 @@ public final class GifSource implements Source {
 
   private Header header;
   private Frame frame;
+  private ByteString restoreCanvas;
   private int pos = 0;
 
   GifSource(BufferedSource source) {
@@ -162,17 +163,19 @@ public final class GifSource implements Source {
         backgroundIndex, loopCount);
 
     section = SECTION_BODY;
-
+    this.header = header;
     return header;
   }
 
   @Nullable public Frame readFrame() throws IOException {
     if (section == SECTION_HEADER) header = readHeader();
     if (section == SECTION_DONE) return null;
-    return readFrameInternal(new Frame());
+    frame = readFrameInternal(frame);
+    return frame;
   }
 
-  @Nullable private Frame readFrameInternal(final Frame frame) throws IOException {
+  @Nullable private Frame readFrameInternal(final Frame prev) throws IOException {
+    frame = new Frame();
     while (frameSection == FRAME_HEADER) {
       int code = readByte();
       switch (code) {
@@ -187,6 +190,7 @@ public final class GifSource implements Source {
           return null;  // Trailer
       }
     }
+    frame.dispose(header, prev, restoreCanvas);
     readFrameImageData(frame);
     return frame;
   }
@@ -229,7 +233,12 @@ public final class GifSource implements Source {
         frame.disposalMethod = (packed & 0x1c) >> 2;
         frame.transparentColorFlag = (packed & 1) != 0;
         frame.setDelayTime(readShort() * 10);
-        frame.transparentColorIndex = readByte();
+        if (frame.transparentColorFlag) {
+          frame.transparentColorIndex = readByte();
+        } else {
+          source.skip(1);
+          frame.transparentColorIndex = -1;
+        }
         source.skip(1); // block terminator
         break;
 
@@ -279,7 +288,7 @@ public final class GifSource implements Source {
       //    +---------------+
       case 0xff:
         // Ignore application extensions; we've already read the only one we care about (Netscape).
-        source.skip(readByte() + 12); // app extension id, app data, block terminator
+        source.skip(readByte() + 13); // app extension id, app data, block terminator
     }
   }
 
@@ -314,7 +323,7 @@ public final class GifSource implements Source {
     //                            Sort Flag                     1 Bit
     //                            Reserved                      2 Bits
     //                            Size of Local Color Table     3 Bits
-    source.require(10);
+    source.require(9);
 
     frame.imageLeftPosition = readShort();
     frame.imageTopPosition = readShort();
@@ -360,13 +369,18 @@ public final class GifSource implements Source {
   }
 
   private void readFrameImageData(Frame frame) throws IOException {
-    // TODO dispose previous frame (populate new frame data?)
-    frame.indexData = readFrameIndexData(frame);
+    frame.indexData = readFrameIndexData(frame.imageWidth * frame.imageHeight);
     frame.pixelData = readFramePixelData(frame);
+
+    if (frame.disposalMethod == DISPOSAL_METHOD_UNKNOWN
+        || frame.disposalMethod == DISPOSAL_METHOD_LEAVE) {
+      restoreCanvas = frame.pixelData;
+    }
+
     frameSection = FRAME_HEADER;
   }
 
-  private ByteString readFrameIndexData(final Frame frame) throws IOException {
+  private ByteString readFrameIndexData(final int count) throws IOException {
     // Image data block
     //
     //  7 6 5 4 3 2 1 0        Field Name                    Type
@@ -401,15 +415,6 @@ public final class GifSource implements Source {
     // +---------------+
     // |0 0 0 0 0 0 0 0|  Block Terminator
     // +---------------+
-    final int pixels = frame.imageWidth * frame.imageHeight;
-    final int dataSize = readByte();
-    final int clearCode = 1 << dataSize;
-    final int endCode = clearCode + 1;
-    int available = clearCode + 2;
-    int oldCode = -1;
-    int codeSize = dataSize + 1;
-    int codeMask = (1 << codeSize) - 1;
-
     if (indexData == null) {
       indexData = new Buffer();
     } else {
@@ -420,29 +425,33 @@ public final class GifSource implements Source {
     if (suffix == null) suffix = new byte[MAX_STACK_SIZE];
     if (pixelStack == null) pixelStack = new byte[MAX_STACK_SIZE + 1];
 
-    for (int i = 0; i < clearCode; i++) {
-      prefix[i] = 0;
-      suffix[i] = (byte) i;
-    }
-
-    int code;
+    final int dataSize = readByte();
+    final int clearCode = 1 << dataSize;
+    final int endCode = clearCode + 1;
+    int available = clearCode + 2;
+    int oldCode = -1;
+    int codeSize = dataSize + 1;
+    int codeMask = (1 << codeSize) - 1;
     int datum = 0;
     int bits = 0;
     int first = 0;
     int top = 0;
-    int pi = 0;
     int remaining = 0;
+    int code;
+    int i;
 
-    for (int i = 0; i < pixels; ) {
+    for (code = 0; code < clearCode; code++) {
+      prefix[code] = 0;
+      suffix[code] = (byte) code;
+    }
+
+    for (i = 0; i < count; ) {
       if (remaining == 0) {
         remaining = readByte();
-        if (remaining <= 0) {
-          System.out.println("remaining <= 0");
-          break;
-        }
+        if (remaining <= 0) break;
       }
 
-      datum += readByte() << bits;
+      datum |= readByte() << bits;
       bits += 8;
       remaining--;
 
@@ -462,20 +471,13 @@ public final class GifSource implements Source {
           continue;
         }
 
-        if (code > available) {
-          System.out.println("code > available");
+        if (code == endCode || code > available) {
           break;
         }
 
-        // Check for explicit end-of-stream
-        if (code == endCode) {
-          source.skip(remaining + 1); // block terminator
-          return indexData.snapshot();
-        }
-
         if (oldCode == -1) {
-          indexData.writeByte(suffix[code]);
-          pi++;
+          indexData.writeByte(code);
+          i++;
           oldCode = code;
           first = code;
           continue;
@@ -492,18 +494,18 @@ public final class GifSource implements Source {
           code = prefix[code];
         }
 
-        first = suffix[code];
+        first = suffix[code] & 0xff;
         pixelStack[top++] = (byte) first;
 
-        if (available < MAX_STACK_SIZE) {
-          prefix[available] = (short) oldCode;
-          suffix[available] = (byte) first;
-          available++;
+        if (available >= MAX_STACK_SIZE) break;
 
-          if (((available & codeMask) == 0) && (available < MAX_STACK_SIZE)) {
-            codeSize++;
-            codeMask += available;
-          }
+        prefix[available] = (short) oldCode;
+        suffix[available] = (byte) first;
+        available++;
+
+        if (((available & codeMask) == 0) && (available < MAX_STACK_SIZE)) {
+          codeSize++;
+          codeMask += available;
         }
 
         oldCode = inCode;
@@ -511,19 +513,18 @@ public final class GifSource implements Source {
         // Drain the pixel stack.
         while (top > 0) {
           indexData.writeByte(pixelStack[--top]);
-          pi++;
           i++;
+          pixelStack[top] = 0;
         }
       }
     }
 
     // Clear missing pixels.
-    while (pi < pixels) {
+    for (; i < count; i++) {
       indexData.writeByte(0);
-      pi++;
     }
 
-    source.skip(1); // block terminator
+    source.skip(remaining + 1); // padding + block terminator
     return indexData.snapshot();
   }
 
@@ -535,7 +536,15 @@ public final class GifSource implements Source {
 
     final int w = frame.imageWidth;
     final int h = frame.imageHeight;
-    int sy;
+    final int left = frame.imageLeftPosition;
+    final int top = frame.imageTopPosition;
+    final int right = left + w;
+    final int bottom = top + h;
+    final int stride = header.width * 4;
+    final Buffer canvas = new Buffer();
+    canvas.write(frame.canvas);
+
+    int dy, dx, sy;
 
     int n1 = 0, n2 = 0, n3 = 0;
     if (frame.interlaceFlag) {
@@ -544,7 +553,17 @@ public final class GifSource implements Source {
       n3 = (h + 1) / 2;
     }
 
-    for (int dy = 0; dy < h; dy++) {
+    // Top unpopulated region
+    if (top > 0) {
+      pixelData.write(canvas, top * stride);
+    }
+
+    for (dy = 0; dy < h; dy++) {
+      // Left unpopulated region
+      if (left > 0) {
+        pixelData.write(canvas, left * 4);
+      }
+
       if (frame.interlaceFlag) {
         sy = dy % 8 == 0 ?       dy      / 8
            : dy % 4 == 0 ? n1 + (dy - 4) / 8
@@ -554,11 +573,26 @@ public final class GifSource implements Source {
         sy = dy;
       }
 
-      for (int dx = 0; dx < w; dx++) {
-        final int index = indexData.getByte(sy * w + dx) & 0xff;
-        final int color = index == transparentIndex ? colors[index] & 0x00ffffff : colors[index];
-        pixelData.writeInt(color);
+      for (dx = 0; dx < w; dx++) {
+        final int pos = sy * w + dx;
+        final int index = indexData.getByte(pos) & 0xff;
+        if (index == transparentIndex) {
+          pixelData.write(canvas, 4);
+        } else {
+          pixelData.writeInt(colors[index]);
+          canvas.skip(4);
+        }
       }
+
+      // Right unpopulated region
+      if (right < header.width) {
+        pixelData.write(canvas, (header.width - right) * 4);
+      }
+    }
+
+    // Bottom unpopulated region
+    if (bottom < header.height) {
+      pixelData.write(canvas, (header.height - bottom) * stride);
     }
 
     return pixelData.snapshot();
@@ -606,21 +640,22 @@ public final class GifSource implements Source {
     source.require(count * 3);
     int[] table = new int[count];
     for (int i = 0; i < count; i++) {
-      table[i] = ((source.readByte() & 0xff) << 16)
-          | ((source.readByte() & 0xff) << 8)
-          | (source.readByte() & 0xff)
+      table[i] = readByte() << 16
+          | readByte() << 8
+          | readByte()
           | 0xff000000;
     }
     return table;
   }
 
-  static class Header {
+  public static class Header {
     final int width;
     final int height;
     final int globalColorTableSize;
     final int[] globalColorTable;
     final int backgroundIndex;
     final int loopCount;
+    final ByteString background;
 
     Header(int width, int height, @Nullable int[] globalColorTable, int globalColorTableSize,
         int backgroundIndex, int loopCount) {
@@ -630,10 +665,36 @@ public final class GifSource implements Source {
       this.globalColorTableSize = globalColorTableSize;
       this.backgroundIndex = backgroundIndex;
       this.loopCount = loopCount;
+
+      Buffer canvas = new Buffer();
+      int count = width * height;
+      if (globalColorTable != null) {
+        int background = globalColorTable[backgroundIndex];
+        for (int i = 0; i < count; i++) {
+          canvas.writeInt(background);
+        }
+      } else {
+        for (int i = 0; i < count; i++) {
+          canvas.writeInt(0);
+        }
+      }
+      background = canvas.snapshot();
+    }
+
+    public int width() {
+      return width;
+    }
+
+    public int height() {
+      return height;
+    }
+
+    public int loopCount() {
+      return loopCount;
     }
   }
 
-  static class Frame {
+  public static class Frame {
     // Graphic control extension
     int delayTime;
     int disposalMethod;
@@ -656,28 +717,50 @@ public final class GifSource implements Source {
     int[] activeColorTable;
 
     // Image data
+    ByteString canvas;
     ByteString indexData;
     ByteString pixelData;
+
+    Frame() {
+      // Prevent instantiation outside this package.
+    }
+
+    public int delayTime() {
+      return delayTime;
+    }
+
+    public int loopCount() {
+      return loopCount;
+    }
+
+    public ByteString pixels() {
+      return pixelData;
+    }
 
     void setDelayTime(int delayTime) {
       this.delayTime = delayTime <= 10 ? 100 : delayTime;
     }
 
-    void reset() {
-      delayTime = -1;
-      disposalMethod = DISPOSAL_METHOD_UNKNOWN;
-      transparentColorIndex = -1;
-      transparentColorFlag = false;
-      loopCount = 0;
-      imageLeftPosition = 0;
-      imageTopPosition = 0;
-      imageWidth = 0;
-      imageHeight = 0;
-      localColorTableFlag = false;
-      interlaceFlag = false;
-      sortFlag = false;
-      localColorTableSize = 0;
-      localColorTable = null;
+    void dispose(final Header header, @Nullable final Frame prev,
+        @Nullable final ByteString restoreCanvas) throws IOException {
+      switch (disposalMethod) {
+        case DISPOSAL_METHOD_LEAVE:
+          canvas = prev == null
+              ? header.background
+              : prev.pixelData;
+          break;
+
+        case DISPOSAL_METHOD_RESTORE:
+          canvas = restoreCanvas == null
+              ? header.background
+              : restoreCanvas;
+          break;
+
+        case DISPOSAL_METHOD_UNKNOWN:
+        case DISPOSAL_METHOD_BACKGROUND:
+        default:
+          canvas = header.background;
+      }
     }
 
     @SuppressLint("DefaultLocale")

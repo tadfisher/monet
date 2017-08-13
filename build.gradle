@@ -4,7 +4,8 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    classpath 'com.android.tools.build:gradle:3.0.0-alpha9'
+    classpath 'com.android.tools.build:gradle:3.0.0-beta2'
+    classpath 'org.jacoco:org.jacoco.core:0.7.9'
   }
 }
 
@@ -27,12 +28,13 @@ ext {
   buildToolsVersion = '26.0.0'
   minSdkVersion = 16
   targetSdkVersion = 26
+  jacocoVersion = '0.7.9'
   sourceCompatibilityVersion = JavaVersion.VERSION_1_8
   targetCompatibilityVersion = JavaVersion.VERSION_1_8
 
   // Common dependency versions
   retrofitVersion = '2.3.0'
-  supportLibraryVersion = '26.0.0'
+  supportLibraryVersion = '26.0.1'
 
   dep = [autovalue           : 'com.google.auto.value:auto-value:1.4.1',
          autovalueAnnotations: 'com.jakewharton.auto.value:auto-value-annotations:1.4',
