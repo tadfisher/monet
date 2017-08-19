@@ -38,6 +38,7 @@ import okio.Okio;
 
   private static Builder builder() {
     return new AutoValue_Request.Builder()
+        .config(Bitmap.Config.ARGB_8888)
         .targetHeight(0)
         .targetWidth(0);
   }
@@ -48,7 +49,7 @@ import okio.Okio;
 
   // TODO Some of these properties are decoder-specific. Figure out a nice API and move them.
 
-  @Nullable public abstract Bitmap.Config config();
+  public abstract Bitmap.Config config();
 
   @Nullable public abstract View fitView();
 
@@ -65,7 +66,7 @@ import okio.Okio;
   @AutoValue.Builder public static abstract class Builder {
 
     /** Apply a {@linkplain Bitmap.Config bitmap configuration} to this request. */
-    public abstract Builder config(@Nullable Bitmap.Config config);
+    public abstract Builder config(Bitmap.Config config);
 
     /**
      * Scale the decoded image to fit the target bounds using the provided

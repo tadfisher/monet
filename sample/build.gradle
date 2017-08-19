@@ -8,6 +8,7 @@ dependencies {
   implementation dep.supportRecyclerView
   implementation project(':monet')
   implementation project(':decoder-bitmap')
+  implementation project(':decoder-gif')
 }
 
 android {

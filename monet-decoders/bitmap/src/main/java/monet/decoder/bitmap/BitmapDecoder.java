@@ -4,19 +4,26 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.view.View;
 import android.widget.ImageView;
-import io.reactivex.Scheduler;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Set;
-import monet.DecodeResult;
+import monet.BitmapImage;
+import monet.DecodeException;
 import monet.Decoder;
+import monet.Image;
 import monet.Request;
+import monet.internal.Util;
 import okio.Buffer;
 import okio.BufferedSource;
 import okio.ByteString;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 
-public class BitmapDecoder extends Decoder<Bitmap> {
+public class BitmapDecoder extends Decoder {
 
   public enum ImageType {
     BMP(ByteString.encodeUtf8("BM")),
@@ -38,51 +45,25 @@ public class BitmapDecoder extends Decoder<Bitmap> {
 
   private final Set<ImageType> imageTypes;
 
-  BitmapDecoder(Scheduler scheduler, Set<ImageType> imageTypes) {
-    super(scheduler);
+  public static Decoder create() {
+    return create(new LinkedHashSet<>(Arrays.asList(ImageType.values())));
+  }
+
+  public static Decoder create(Set<ImageType> imageTypes) {
+    return new BitmapDecoder(imageTypes);
+  }
+
+  BitmapDecoder(Set<ImageType> imageTypes) {
     this.imageTypes = Collections.unmodifiableSet(imageTypes);
   }
 
-  @Override
-  public DecodeResult<Bitmap> decode(Request request) {
+  @Override protected boolean supports(Request request) {
     final BufferedSource source = request.source();
-
     try {
-      if (!checkSignature(source)) {
-        return DecodeResult.unsupported();
+      if (!source.request(MAX_SIGNATURE_LENGTH)) {
+        return false;
       }
     } catch (IOException e) {
-      return DecodeResult.error(e);
-    }
-
-    InputStream stream = source.inputStream();
-    final BitmapFactory.Options options = createBitmapOptions(request);
-    final boolean calculateSize = options != null && options.inJustDecodeBounds;
-
-    if (calculateSize) {
-      MarkableInputStream markStream = new MarkableInputStream(stream);
-      stream = markStream;
-      markStream.allowMarksToExpire(false);
-      long mark = markStream.savePosition(1024);
-      BitmapFactory.decodeStream(stream, null, options);
-      calculateInSampleSize(request.targetWidth(), request.targetHeight(), options.outWidth,
-          options.outHeight, options, request);
-      try {
-        markStream.reset(mark);
-      } catch (IOException e) {
-        return DecodeResult.error(e);
-      }
-      markStream.allowMarksToExpire(true);
-    }
-    Bitmap bitmap = BitmapFactory.decodeStream(stream, null, options);
-    if (bitmap == null) {
-      return DecodeResult.error(new IOException("Failed to decode bitmap."));
-    }
-    return DecodeResult.success(bitmap);
-  }
-
-  private boolean checkSignature(BufferedSource source) throws IOException {
-    if (!source.request(MAX_SIGNATURE_LENGTH)) {
       return false;
     }
     final Buffer buf = source.buffer();
@@ -90,55 +71,116 @@ public class BitmapDecoder extends Decoder<Bitmap> {
     for (ImageType type : imageTypes) {
       for (ByteString signature : type.signatures) {
         if (bytes.startsWith(signature)) {
-          if (type == ImageType.WEBP && !buf.rangeEquals(8, WEBP_SUFFIX)) {
-            return false;
-          }
-          return true;
+          return !(type == ImageType.WEBP && !buf.rangeEquals(8, WEBP_SUFFIX));
         }
       }
     }
     return false;
   }
 
-  private static BitmapFactory.Options createBitmapOptions(Request request) {
-    final boolean justBounds = request.hasTargetSize();
-    final Bitmap.Config config = request.config();
-    final boolean hasConfig = config != null;
-    BitmapFactory.Options options = null;
-    if (justBounds || hasConfig) {
-      options = new BitmapFactory.Options();
-      options.inJustDecodeBounds = justBounds;
-      if (hasConfig) {
-        options.inPreferredConfig = config;
-      }
-    }
-    return options;
+  @Override protected Publisher<? extends Image> publisher(Request request) {
+    return (Publisher<Image>) subscriber ->
+      subscriber.onSubscribe(new BitmapSubscription(subscriber, request));
   }
 
-  private static void calculateInSampleSize(int reqWidth, int reqHeight, int width, int height,
-      BitmapFactory.Options options, Request request) {
-    int sampleSize = 1;
-    if (height > reqHeight || width > reqWidth) {
-      final int heightRatio;
-      final int widthRatio;
-      if (reqHeight == 0) {
-        sampleSize = (int) Math.floor((float) width / (float) reqWidth);
-      } else if (reqWidth == 0) {
-        sampleSize = (int) Math.floor((float) height / (float) reqHeight);
-      } else {
-        heightRatio = (int) Math.floor((float) height / (float) reqHeight);
-        widthRatio = (int) Math.floor((float) width / (float) reqWidth);
-        final View fitView = request.fitView();
-        if (fitView != null
-            && fitView instanceof ImageView
-            && ((ImageView) fitView).getScaleType() == ImageView.ScaleType.CENTER_INSIDE) {
-          sampleSize = Math.max(heightRatio, widthRatio);
-        } else {
-          sampleSize = Math.min(heightRatio, widthRatio);
+  static class BitmapSubscription implements Subscription {
+
+    private final Subscriber<? super Image> subscriber;
+    private final Request request;
+
+    private volatile boolean isCancelled;
+    private volatile BitmapFactory.Options options;
+
+    BitmapSubscription(Subscriber<? super Image> subscriber, Request request) {
+      this.subscriber = subscriber;
+      this.request = request;
+    }
+
+    @Override public void request(long n) {
+      if (isCancelled) return;
+
+      final BufferedSource source = request.source();
+      try {
+        subscriber.onNext(decode(source));
+        subscriber.onComplete();
+      } catch (DecodeException|IOException e) {
+        subscriber.onError(e);
+      }
+
+      isCancelled = true;
+    }
+
+    @Override public void cancel() {
+      if (isCancelled) return;
+      isCancelled = true;
+    }
+
+    private BitmapImage decode(BufferedSource source) throws DecodeException, IOException {
+      InputStream stream = source.inputStream();
+      options = createBitmapOptions(request);
+      final boolean calculateSize = options != null && options.inJustDecodeBounds;
+
+      if (calculateSize) {
+        final MarkableInputStream markStream = new MarkableInputStream(stream);
+        stream = markStream;
+        markStream.allowMarksToExpire(false);
+        long mark = markStream.savePosition(1024);
+        BitmapFactory.decodeStream(stream, null, options);
+        calculateInSampleSize(request.targetWidth(), request.targetHeight(), options.outWidth,
+            options.outHeight, options, request);
+        try {
+          markStream.reset(mark);
+        } catch (IOException e) {
+          subscriber.onError(e);
+          Util.closeQuietly(source);
+        }
+        markStream.allowMarksToExpire(true);
+      }
+      final Bitmap bitmap = BitmapFactory.decodeStream(stream, null, options);
+      if (bitmap == null) throw new DecodeException("Failed to decode bitmap.");
+      return new BitmapImage(bitmap);
+    }
+
+    private static BitmapFactory.Options createBitmapOptions(Request request) {
+      final boolean justBounds = request.hasTargetSize();
+      final Bitmap.Config config = request.config();
+      final boolean hasConfig = config != null;
+      BitmapFactory.Options options = null;
+      if (justBounds || hasConfig) {
+        options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = justBounds;
+        if (hasConfig) {
+          options.inPreferredConfig = config;
         }
       }
+      return options;
     }
-    options.inSampleSize = sampleSize;
-    options.inJustDecodeBounds = false;
+
+    private static void calculateInSampleSize(int reqWidth, int reqHeight, int width, int height,
+        BitmapFactory.Options options, Request request) {
+      int sampleSize = 1;
+      if (height > reqHeight || width > reqWidth) {
+        final int heightRatio;
+        final int widthRatio;
+        if (reqHeight == 0) {
+          sampleSize = (int) Math.floor((float) width / (float) reqWidth);
+        } else if (reqWidth == 0) {
+          sampleSize = (int) Math.floor((float) height / (float) reqHeight);
+        } else {
+          heightRatio = (int) Math.floor((float) height / (float) reqHeight);
+          widthRatio = (int) Math.floor((float) width / (float) reqWidth);
+          final View fitView = request.fitView();
+          if (fitView != null
+              && fitView instanceof ImageView
+              && ((ImageView) fitView).getScaleType() == ImageView.ScaleType.CENTER_INSIDE) {
+            sampleSize = Math.max(heightRatio, widthRatio);
+          } else {
+            sampleSize = Math.min(heightRatio, widthRatio);
+          }
+        }
+      }
+      options.inSampleSize = sampleSize;
+      options.inJustDecodeBounds = false;
+    }
   }
 }

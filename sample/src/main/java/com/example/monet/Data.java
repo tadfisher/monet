@@ -10,7 +10,7 @@ final class Data {
       "nZc9wEn" + EXT, "TRNvDOr" + EXT, "Zo4X6dN" + EXT, "hOLJS4z" + EXT, "K2BV68o" + EXT,
       "cJzxEdv" + EXT, "KRfYhg7" + EXT, "6bBNTpM" + EXT, "bbbi0MK" + EXT, "nVRGF1P" + EXT,
       "ohc0pMv" + EXT, "LvrXetO" + EXT, "JKvE3x7" + EXT, "g9pXDDM" + EXT, "VIzAZrk" + EXT,
-      "L9lNges" + EXT, "J8suM4J" + EXT, "GmOCgAY" + EXT, "ic2cxpt" + EXT,
+      "L9lNges" + EXT, "J8suM4J" + EXT, "GmOCgAY" + EXT, "ic2cxpt" + EXT, "Jg0gWBo.gif"
   };
 
   private Data() {

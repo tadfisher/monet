@@ -1,6 +1,5 @@
 package com.example.monet;
 
-import android.graphics.Bitmap;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -11,15 +10,18 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
 import monet.Monet;
+import monet.MonetSchedulers;
 import monet.Request;
-import monet.decoder.bitmap.BitmapDecoderFactory;
+import monet.decoder.bitmap.BitmapDecoder;
+import monet.decoder.gif.GifDecoder;
 
 class MonetAdapter extends RecyclerView.Adapter<ViewHolder> {
 
   private final ImgurService service;
   private final CompositeDisposable disposables = new CompositeDisposable();
   private final Monet monet = new Monet.Builder()
-      .add(BitmapDecoderFactory.create())
+      .add(GifDecoder.create())
+      .add(BitmapDecoder.create())
       .build();
 
   MonetAdapter(ImgurService service) {
@@ -61,9 +63,12 @@ class MonetAdapter extends RecyclerView.Adapter<ViewHolder> {
       view.setImageDrawable(null);
       disposable = service.fetch(url)
           .map(body -> Request.builder(body.source()).fit(view).build())
-          .compose(monet.decoder(Bitmap.class))
+          .observeOn(MonetSchedulers.decodeThread())
+          .flatMapPublisher(r -> monet.decoder(r).apply(r))
           .observeOn(AndroidSchedulers.mainThread())
-          .subscribe(view::setImageBitmap, error -> Log.e("Monet", "Error decoding bitmap", error));
+          .subscribe(
+              image -> view.setImageBitmap(image.asBitmap()),
+              error -> Log.e("Monet", "Error decoding bitmap", error));
       disposables.add(disposable);
     }
   }

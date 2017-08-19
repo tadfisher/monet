@@ -107,7 +107,7 @@ public final class GifSource implements Source {
     //   +---------------+
     source.require(6);
     if (!source.rangeEquals(0, SIGNATURE)) {
-      throw new IOException("GIF signature not found");
+      throw new UnsupportedFormatException("GIF signature not found");
     }
     source.skip(6);
 
@@ -797,6 +797,12 @@ public final class GifSource implements Source {
           sortFlag,
           localColorTableSize
       );
+    }
+  }
+
+  public static class UnsupportedFormatException extends IOException {
+    UnsupportedFormatException(String message) {
+      super(message);
     }
   }
 }
