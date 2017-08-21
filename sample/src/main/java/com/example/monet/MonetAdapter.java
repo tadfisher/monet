@@ -10,8 +10,8 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
 import monet.Monet;
-import monet.MonetSchedulers;
 import monet.Request;
+import monet.RxMonet;
 import monet.decoder.bitmap.BitmapDecoder;
 import monet.decoder.gif.GifDecoder;
 
@@ -19,10 +19,10 @@ class MonetAdapter extends RecyclerView.Adapter<ViewHolder> {
 
   private final ImgurService service;
   private final CompositeDisposable disposables = new CompositeDisposable();
-  private final Monet monet = new Monet.Builder()
+  private final RxMonet monet = RxMonet.from(new Monet.Builder()
       .add(GifDecoder.create())
       .add(BitmapDecoder.create())
-      .build();
+      .build());
 
   MonetAdapter(ImgurService service) {
     this.service = service;
@@ -63,8 +63,7 @@ class MonetAdapter extends RecyclerView.Adapter<ViewHolder> {
       view.setImageDrawable(null);
       disposable = service.fetch(url)
           .map(body -> Request.builder(body.source()).fit(view).build())
-          .observeOn(MonetSchedulers.decodeThread())
-          .flatMapPublisher(r -> monet.decoder(r).apply(r))
+          .flatMapObservable(monet::decode)
           .observeOn(AndroidSchedulers.mainThread())
           .subscribe(
               image -> view.setImageBitmap(image.asBitmap()),

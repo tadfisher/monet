@@ -70,7 +70,7 @@ public final class MonetPlugins {
 
   static Scheduler callRequireNonNull(Callable<Scheduler> s) {
     try {
-      Scheduler scheduler = (Scheduler) s.call();
+      Scheduler scheduler = s.call();
       if (scheduler == null) {
         throw new NullPointerException("Scheduler Callable returned null");
       } else {
@@ -83,7 +83,7 @@ public final class MonetPlugins {
 
   static Scheduler applyRequireNonNull(Function<Callable<Scheduler>, Scheduler> f,
       Callable<Scheduler> s) {
-    Scheduler scheduler = (Scheduler) apply(f, s);
+    Scheduler scheduler = apply(f, s);
     if (scheduler == null) {
       throw new NullPointerException("Scheduler Callable returned null");
     } else {

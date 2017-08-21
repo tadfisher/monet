@@ -21,11 +21,11 @@ public class GifDecoder extends Decoder {
     return new GifDecoder();
   }
 
-  GifDecoder() {
+  private GifDecoder() {
     // Prevent instantiation.
   }
 
-  @Override protected boolean supports(Request request) {
+  @Override public boolean supports(Request request) {
     final BufferedSource source = request.source();
     try {
       if (!source.request(SIGNATURE.size())) {
@@ -84,7 +84,8 @@ public class GifDecoder extends Decoder {
           }
 
           subscriber.onNext(
-              new BufferImage(header.width, header.height, frame.pixelData.asByteBuffer()));
+              new BufferImage(header.width, header.height, frame.delayTime,
+                  frame.pixelData.asByteBuffer()));
         }
       } catch (Exception e) {
         cancel();

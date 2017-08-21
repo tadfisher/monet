@@ -8,13 +8,19 @@ public class BufferImage implements Image {
 
   private final int width;
   private final int height;
+  private final int frameDelay;
   private final ByteBuffer buffer;
   private int[] pixels;
   private Bitmap bitmap;
 
   public BufferImage(int width, int height, ByteBuffer buffer) {
+    this(width, height, 0, buffer);
+  }
+
+  public BufferImage(int width, int height, int frameDelay, ByteBuffer buffer) {
     this.width = width;
     this.height = height;
+    this.frameDelay = frameDelay;
     this.buffer = buffer;
   }
 
@@ -24,6 +30,10 @@ public class BufferImage implements Image {
 
   @Override public int height() {
     return height;
+  }
+
+  @Override public int frameDelay() {
+    return frameDelay;
   }
 
   @Override public Buffer asBuffer() {

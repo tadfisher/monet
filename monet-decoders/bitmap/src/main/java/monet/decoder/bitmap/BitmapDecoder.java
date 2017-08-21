@@ -57,7 +57,7 @@ public class BitmapDecoder extends Decoder {
     this.imageTypes = Collections.unmodifiableSet(imageTypes);
   }
 
-  @Override protected boolean supports(Request request) {
+  @Override public boolean supports(Request request) {
     final BufferedSource source = request.source();
     try {
       if (!source.request(MAX_SIGNATURE_LENGTH)) {
@@ -78,7 +78,7 @@ public class BitmapDecoder extends Decoder {
     return false;
   }
 
-  @Override protected Publisher<? extends Image> publisher(Request request) {
+  @Override public Publisher<? extends Image> publisher(Request request) {
     return (Publisher<Image>) subscriber ->
       subscriber.onSubscribe(new BitmapSubscription(subscriber, request));
   }

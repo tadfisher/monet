@@ -3,7 +3,7 @@ package monet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import monet.internal.Preconditions;
+import org.reactivestreams.Publisher;
 
 public final class Monet {
   private final List<Decoder> decoders;
@@ -14,7 +14,11 @@ public final class Monet {
     this.decoders = Collections.unmodifiableList(decoders);
   }
 
-  public Decoder decoder(Request request) {
+  public Publisher<? extends Image> decode(Request request) {
+    return decoder(request).publisher(request);
+  }
+
+  private Decoder decoder(Request request) {
     for (int i = 0; i < decoders.size(); i++) {
       final Decoder decoder = decoders.get(i);
       if (decoder.supports(request)) {
@@ -32,7 +36,7 @@ public final class Monet {
     final List<Decoder> decoders = new ArrayList<>();
 
     public Builder add(Decoder decoder) {
-      Preconditions.checkNotNull(decoder, "decoder == null");
+      checkNotNull(decoder, "decoder == null");
       decoders.add(decoder);
       return this;
     }
@@ -44,6 +48,12 @@ public final class Monet {
 
     public Monet build() {
       return new Monet(this);
+    }
+  }
+
+  private static void checkNotNull(Object value, String message) {
+    if (value == null) {
+      throw new NullPointerException(message);
     }
   }
 }

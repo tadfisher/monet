@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply plugin: 'com.jakewharton.hugo'
 
 android {
   compileSdkVersion rootProject.ext.compileSdkVersion
@@ -16,6 +17,7 @@ android {
 
 dependencies {
   implementation project(':monet')
+  implementation dep.reactiveStreams
   compileOnly dep.jsr305
   testImplementation dep.junit
   testImplementation dep.hamcrest

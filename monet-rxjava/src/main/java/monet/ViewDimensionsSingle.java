@@ -7,8 +7,6 @@ import io.reactivex.Single;
 import io.reactivex.SingleObserver;
 import io.reactivex.android.MainThreadDisposable;
 
-import static monet.internal.Preconditions.checkMainThread;
-
 class ViewDimensionsSingle extends Single<ViewDimensions> {
 
   private final View view;
@@ -18,9 +16,7 @@ class ViewDimensionsSingle extends Single<ViewDimensions> {
   }
 
   @Override protected void subscribeActual(SingleObserver<? super ViewDimensions> observer) {
-    if (!checkMainThread(observer)) {
-      return;
-    }
+    if (!RxMonet.checkMainThread(observer)) return;
 
     int width = view.getWidth();
     int height = view.getHeight();
