@@ -27,7 +27,7 @@ public class MainActivity extends AppCompatActivity {
         .readTimeout(60, TimeUnit.SECONDS)
         .build();
 
-    final HttpUrl url = HttpUrl.parse("http://i.imgur.com/");
+    final HttpUrl url = HttpUrl.parse("https://i.imgur.com/");
     assert url != null;
 
     service = new Retrofit.Builder()
